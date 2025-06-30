@@ -23,13 +23,16 @@ def preguntar(data: Pregunta):
         return {"respuesta": "No tengo información suficiente en la base proporcionada."}
     
     prompt = f"""
-Responde SOLO usando la siguiente información sobre productos, planes y coberturas:
------
-{contexto}
------
-Pregunta del usuario: {data.pregunta}
-Si no encuentras información en los datos, di: 'No tengo información suficiente en la base proporcionada.'
-"""
+    Responde SOLO usando la siguiente información sobre productos, planes y coberturas, sin inventar datos.
+    Responde SIEMPRE en español, sin mezclar inglés.
+    La respuesta debe ser clara y en máximo 4 líneas, formato texto plano, sin saltos de línea innecesarios, sin /n, sin viñetas, solo un párrafo continuo y fácil de leer. No escribas en formato lista ni HTML.
+    -----
+    {contexto}
+    -----
+    Pregunta del usuario: {data.pregunta}
+    Si no encuentras información en los datos, di: 'No tengo información suficiente en la base proporcionada.'
+    """
+
     # (opcional) print para debug
     print("=== CONTEXTO ENVIADO AL MODELO ===\n", contexto)
     print("=== PROMPT COMPLETO ===\n", prompt)
