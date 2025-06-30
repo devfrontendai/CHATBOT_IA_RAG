@@ -1,0 +1,23 @@
+services:
+  fastapi:
+    build: ./src
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src/storage:/src/storage       # <-- agrega esta línea para el índice
+      - ./src/info:/src/info             # <-- opcional: para tu json de productos
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: always
+
+volumes:
+  ollama-data:

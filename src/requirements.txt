@@ -1,0 +1,15 @@
+llama-index
+llama-index-core
+llama-index-embeddings-huggingface
+llama-index-llms-ollama
+llama-index-llms-langchain
+sentence-transformers
+langchain
+langchain_community
+fastapi
+uvicorn
+requests
+faiss-cpu
+chromadb
+aiohttp
+ollama
