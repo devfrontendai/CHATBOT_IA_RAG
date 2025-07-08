@@ -96,10 +96,6 @@ def preguntar(data: Pregunta):
     INFORMACIÓN:
     {contexto}
     -----------------
-    CONVERSACIÓN RECIENTE:
-    {texto_historial}
-    -----------------
-    Pregunta actual: {data.pregunta}
 
     - Responde SIEMPRE en ESPAÑOL, en formato markdown.
     - Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
