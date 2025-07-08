@@ -62,7 +62,7 @@ def preguntar(data: Pregunta):
         if current_session and current_session != data.session_id:
             username = data.operator_username or "desconocido"
             return {
-                "error": (
+                "respuesta": (
                     f"Ya hay un agente con el username '{username}' y el id {data.operator_id} activo en otra sala de chat, espera a que termine."
                 )
             }
