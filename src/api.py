@@ -101,7 +101,7 @@ def preguntar(data: Pregunta):
     Pregunta del operador: {data.pregunta}
 
     Historial reciente de la conversación (puedes usarlo para tono, pero prioriza el conocimiento de arriba):
-    {text_historial}
+    {texto_historial}
 
     Responde en formato markdown. Si de verdad no encuentras la respuesta, di: "No tengo información suficiente en la base proporcionada."
     Al final, sugiere una pregunta relevante para seguir.
