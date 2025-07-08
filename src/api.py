@@ -89,18 +89,26 @@ def preguntar(data: Pregunta):
         return {"respuesta": respuesta}
 
     prompt = f"""
-    Eres un asistente experto en productos de seguros. 
-    Tu misión es ayudar a los operadores a responder sobre productos, planes y coberturas, utilizando SÓLO la información proporcionada abajo.
+    Eres un asistente experto en productos de seguros.
+
+    Esta es la conversación previa (tenla en cuenta para ser consistente):
+
+    {texto_historial}
 
     -----------------
-    INFORMACIÓN:
+    Información relevante sobre productos, planes y coberturas:
     {contexto}
     -----------------
 
-    - Responde SIEMPRE en ESPAÑOL, en formato markdown.
-    - Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
+    Pregunta actual: {data.pregunta}
+
+    Reglas:
+    - SOLO puedes responder usando la información arriba (“Información relevante”).
+    - Si no está en la información, responde: 'No tengo información suficiente en la base proporcionada.'
+    - SIEMPRE responde en ESPAÑOL, en formato markdown.
     - Al FINAL de cada respuesta, sugiere amablemente una pregunta de seguimiento relevante.
     """
+
     print("=== HISTORIAL ===\n", texto_historial)
     print("=== CONTEXTO ENVIADO AL MODELO ===\n", contexto)
     print("=== PROMPT COMPLETO ===\n", prompt)
