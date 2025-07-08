@@ -90,20 +90,20 @@ def preguntar(data: Pregunta):
         return {"respuesta": respuesta}
 
     prompt = f"""
-Eres un asistente experto en productos de seguros.
-Esta es la conversación hasta ahora (responde tomando en cuenta el historial):
+    Eres un asistente experto en productos de seguros.
+    Esta es la conversación hasta ahora (responde tomando en cuenta el historial):
 
-{texto_historial}
------
-Usa SOLO la siguiente información sobre productos, planes y coberturas:
-{contexto}
------
-Pregunta actual del operador: {data.pregunta}
+    {texto_historial}
+    -----
+    Usa SOLO la siguiente información sobre productos, planes y coberturas:
+    {contexto}
+    -----
+    Pregunta actual del operador: {data.pregunta}
 
-SIEMPRE responde en ESPAÑOL, en formato markdown.
-Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
-Al FINAL de cada respuesta, sugiere amablemente una pregunta de seguimiento relevante para continuar la conversación.
-"""
+    SIEMPRE responde en ESPAÑOL, en formato markdown.
+    Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
+    Al FINAL de cada respuesta, sugiere amablemente una pregunta de seguimiento relevante para continuar la conversación.
+    """
 
     print("=== HISTORIAL ===\n", texto_historial)
     print("=== CONTEXTO ENVIADO AL MODELO ===\n", contexto)
@@ -126,10 +126,15 @@ Al FINAL de cada respuesta, sugiere amablemente una pregunta de seguimiento rele
     except Exception as e:
         return {"error": str(e)}
 
+class FinalizarSesionInput(BaseModel):
+    session_id: str
+    operator_id: str | None = None
+
 @router.post("/finalizar_sesion")
-def finalizar_sesion(session_id: str, operator_id: str = None):
-    key = f"chat:historial:{session_id}"
+def finalizar_sesion(data: FinalizarSesionInput):
+    key = f"chat:historial:{data.session_id}"
     rdb.delete(key)
-    if operator_id:
-        clear_active_session(operator_id)
+    if data.operator_id:
+        clear_active_session(data.operator_id)
     return {"ok": True, "msg": "Sesión finalizada y memoria eliminada"}
+
