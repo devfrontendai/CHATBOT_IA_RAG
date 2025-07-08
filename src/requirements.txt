@@ -13,3 +13,4 @@ faiss-cpu
 chromadb
 aiohttp
 ollama
+redis
