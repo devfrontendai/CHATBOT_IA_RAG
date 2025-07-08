@@ -130,10 +130,14 @@ def preguntar(data: Pregunta):
     except Exception as e:
         return {"error": str(e)}
 
+class FinalizarSesionInput(BaseModel):
+    session_id: str
+    operator_id: str | None = None
+
 @router.post("/finalizar_sesion")
-def finalizar_sesion(session_id: str, operator_id: str = None):
-    key = f"chat:historial:{session_id}"
+def finalizar_sesion(data: FinalizarSesionInput):
+    key = f"chat:historial:{data.session_id}"
     rdb.delete(key)
-    if operator_id:
-        clear_active_session(operator_id)
+    if data.operator_id:
+        clear_active_session(data.operator_id)
     return {"ok": True, "msg": "Sesión finalizada y memoria eliminada"}
