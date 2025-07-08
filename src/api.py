@@ -12,7 +12,6 @@ REDIS_HOST = "redis"
 REDIS_PORT = 6379
 REDIS_DB = 0
 
-# Redis connection (docker-compose lo expone por hostname "redis")
 rdb = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
 
 class Mensaje(BaseModel):
@@ -24,13 +23,14 @@ class Pregunta(BaseModel):
     historial: list[Mensaje] = []
     session_id: str | None = None
     operator_id: str | None = None
+    operator_username: str | None = None
 
 MAX_HISTORY = 10
 
 def save_history(session_id: str, historial: list[Mensaje]):
     key = f"chat:historial:{session_id}"
     data = json.dumps([m.dict() for m in historial[-MAX_HISTORY:]])
-    rdb.set(key, data, ex=60*60)  # TTL: 1h
+    rdb.set(key, data, ex=60*60)
 
 def load_history(session_id: str) -> list[Mensaje]:
     key = f"chat:historial:{session_id}"
@@ -56,17 +56,17 @@ def preguntar(data: Pregunta):
     if index is None:
         return {"error": "El index aún no está listo, espera unos segundos y vuelve a intentar."}
 
-    # --- Controla sesiones duplicadas (opcional) ---
+    # --- Validación de sesión única por operador ---
     if data.operator_id and data.session_id:
         current_session = get_active_session(data.operator_id)
         if current_session and current_session != data.session_id:
+            username = data.operator_username or "desconocido"
             return {
                 "error": (
-                    f"Ya hay un agente con el id {data.operator_id} activo en otra sala de chat, espera a que termine."
+                    f"Ya hay un agente con el username '{username}' y el id {data.operator_id} activo en otra sala de chat, espera a que termine."
                 )
             }
         set_active_session(data.operator_id, data.session_id)
-
 
     # --- HISTORIAL REDIS ---
     if data.session_id:
@@ -90,20 +90,20 @@ def preguntar(data: Pregunta):
         return {"respuesta": respuesta}
 
     prompt = f"""
-    Eres un asistente experto en productos de seguros.
-    Esta es la conversación hasta ahora (responde tomando en cuenta el historial):
+Eres un asistente experto en productos de seguros.
+Esta es la conversación hasta ahora (responde tomando en cuenta el historial):
 
-    {texto_historial}
-    -----
-    Usa SOLO la siguiente información sobre productos, planes y coberturas:
-    {contexto}
-    -----
-    Pregunta actual del operador: {data.pregunta}
+{texto_historial}
+-----
+Usa SOLO la siguiente información sobre productos, planes y coberturas:
+{contexto}
+-----
+Pregunta actual del operador: {data.pregunta}
 
-    SIEMPRE responde en ESPAÑOL, en formato markdown.
-    Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
-    Al FINAL de cada respuesta, sugiere amablemente una pregunta de seguimiento relevante para continuar la conversación.
-    """
+SIEMPRE responde en ESPAÑOL, en formato markdown.
+Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
+Al FINAL de cada respuesta, sugiere amablemente una pregunta de seguimiento relevante para continuar la conversación.
+"""
 
     print("=== HISTORIAL ===\n", texto_historial)
     print("=== CONTEXTO ENVIADO AL MODELO ===\n", contexto)
