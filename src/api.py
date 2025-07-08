@@ -90,19 +90,19 @@ def preguntar(data: Pregunta):
         return {"respuesta": respuesta}
 
     prompt = f"""
-    Eres un asistente experto en productos de seguros.
-    Esta es la conversación hasta ahora (responde tomando en cuenta el historial):
+    Responde únicamente con la información proporcionada entre las líneas ===CONOCIMIENTO=== y ===FIN CONOCIMIENTO===. 
+    No inventes datos ni uses información externa. 
+    SIEMPRE responde en español. Si no encuentras la respuesta en el texto proporcionado, responde exactamente: "No tengo información suficiente en la base proporcionada."
 
-    {texto_historial}
-    -----
-    Usa SOLO la siguiente información sobre productos, planes y coberturas:
+    ===CONOCIMIENTO===
     {contexto}
-    -----
-    Pregunta actual del operador: {data.pregunta}
+    ===FIN CONOCIMIENTO===
 
-    SIEMPRE responde en ESPAÑOL, en formato markdown.
-    Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
-    Al FINAL de cada respuesta, sugiere amablemente una pregunta de seguimiento relevante para continuar la conversación.
+    Pregunta del operador: {data.pregunta}
+
+    Usa formato markdown para listas y negritas si aplica.
+
+    Al final de cada respuesta, sugiere una pregunta relevante para continuar la conversación.
     """
 
     print("=== HISTORIAL ===\n", texto_historial)
