@@ -51,6 +51,16 @@ def clear_active_session(operator_id: str):
     key = f"chat:agente:{operator_id}"
     rdb.delete(key)
 
+def resumen_historial(historial):
+    if not historial:
+        return ""
+    ultimos_turnos = historial[-2:]
+    texto = ""
+    for m in ultimos_turnos:
+        rol = "Usuario" if m.role == "user" else "Asistente"
+        texto += f"{rol}: {m.content}\n"
+    return texto
+
 @router.post("/preguntar")
 def preguntar(data: Pregunta):
     if index is None:
@@ -74,13 +84,13 @@ def preguntar(data: Pregunta):
     else:
         historial = data.historial[-MAX_HISTORY:]
 
-    texto_historial = ""
+    texto_historial = resumen_historial(historial)
     for m in historial[-MAX_HISTORY:]:
         rol = "Usuario" if m.role == "user" else "Asistente"
         texto_historial += f"{rol}: {m.content}\n"
 
     # Contexto RAG
-    contexto = index.as_query_engine(similarity_top_k=3).query(data.pregunta)
+    contexto = index.as_query_engine(similarity_top_k=6).query(data.pregunta)
     if not contexto or str(contexto).strip() == "":
         respuesta = "No tengo información suficiente en la base proporcionada."
         if data.session_id:
@@ -89,21 +99,20 @@ def preguntar(data: Pregunta):
         return {"respuesta": respuesta}
 
     prompt = f"""
-    Eres un asistente experto en productos de seguros para un call center.
-    Tu misión es ayudar a los operadores usando SÓLO la información proporcionada a continuación, que puede contener datos de productos, planes, coberturas o preguntas frecuentes.
+    Eres un asistente experto en productos de seguros.
+    Toma en cuenta la conversación previa, pero SI el usuario pregunta por un producto o plan diferente, olvida temas previos y responde solo de lo actual.
+
+    Conversación previa:
+    {texto_historial}
 
     -----------------
-    CONVERSACIÓN HASTA AHORA:
-    {texto_historial}
-    -----------------
-    INFORMACIÓN DE BASE DE CONOCIMIENTO (productos/FAQs):
+    INFORMACIÓN DEL RAG:
     {contexto}
     -----------------
 
-    - Responde SIEMPRE en ESPAÑOL, usando formato markdown (listas, negritas, tablas, etc.).
-    - Si la información no está disponible, responde: 'No tengo información suficiente en la base proporcionada.'
-    - Si la respuesta proviene de una pregunta frecuente, dilo amablemente (por ejemplo: "Esta es una respuesta frecuente: ...").
-    - Al FINAL de cada respuesta, sugiere una pregunta de seguimiento relevante para continuar la conversación.
+    Responde SIEMPRE en ESPAÑOL, en formato markdown (puedes usar listas o tablas).
+    Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
+    Al FINAL sugiere amablemente una pregunta relevante para continuar la conversación.
     """
 
     print("=== HISTORIAL ===\n", texto_historial)
