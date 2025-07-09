@@ -15,7 +15,7 @@ print(f"✅ Documentos cargados: {len(all_docs)}")
 
 print("🔄 Inicializando embedding y modelo...")
 embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-large-en-v1.5")
-llm = Ollama(model="gemma3:1b")
+llm = Ollama(model="llama3.1")
 
 print("🔄 Construyendo el índice vectorial...")
 index = build_index(all_docs, embed_model, llm)

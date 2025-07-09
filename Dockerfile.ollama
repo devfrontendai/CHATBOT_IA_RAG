@@ -1,4 +1,4 @@
 FROM ollama/ollama
 
 # Entrypoint: primero descarga el modelo, luego arranca el servidor
-CMD sh -c "ollama pull gemma:2b && ollama serve"
+CMD sh -c "ollama pull llama3.1 && ollama serve"
