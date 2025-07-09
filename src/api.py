@@ -120,7 +120,7 @@ def preguntar(data: Pregunta):
     print("=== PROMPT COMPLETO ===\n", prompt)
 
     payload = {
-        "model": "llama3.1",
+        "model": "llama3:8b-instruct-q2_K",
         "prompt": prompt,
         "stream": False
     }

@@ -4,7 +4,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-large-en-v1.5")
 Settings.llm = Ollama(
-    model="llama3.1",
+    model="llama3:8b-instruct-q2_K",
     base_url="http://ollama:11434",  # <--- esto es CRÍTICO
     request_timeout=300
 )
