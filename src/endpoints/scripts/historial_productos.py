@@ -6,6 +6,7 @@ import requests
 
 router = APIRouter()
 
+# Dummy para fallback
 HISTORIAL_DUMMY = {
     "nombre": "Alfredo Tiprotec",
     "historial_productos": [
