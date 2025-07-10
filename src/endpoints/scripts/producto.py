@@ -21,8 +21,6 @@ class ProductosResponse(BaseModel):
 # Endpoint dummy: /productos/{asegurado_id}
 @router.get("/productos/{asegurado_id}", response_model=ProductosResponse)
 def get_productos(asegurado_id: str):
-    # --- AQUÍ LLAMARÁS TU BACKEND DE LARAVEL ---
-    # Ejemplo: 
     # import requests
     # response = requests.get(f"http://laravel-back/api/polizas/{asegurado_id}")
     # return response.json()
