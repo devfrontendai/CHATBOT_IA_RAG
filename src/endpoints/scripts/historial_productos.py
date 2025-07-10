@@ -68,17 +68,8 @@ def historial_productos(
             else:
                 raise HTTPException(status_code=404, detail="No se encontró información de póliza")
         else:
-            raise HTTPException(status_code=response.status_code, detail="Error al consultar pólizas")
-        return HistorialProductosResponse(
-            nombre=HISTORIAL_DUMMY["nombre"],
-            historial_productos=[
-                ProductoHistorial(**h) for h in HISTORIAL_DUMMY["historial_productos"]
-            ]
-        )
+                raise HTTPException(status_code=404, detail="No se encontró información de póliza")
+        else:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
     except Exception as e:
-        return HistorialProductosResponse(
-            nombre=HISTORIAL_DUMMY["nombre"],
-            historial_productos=[
-                ProductoHistorial(**h) for h in HISTORIAL_DUMMY["historial_productos"]
-            ]
-        )
+        raise HTTPException(status_code=500, detail=str(e))
