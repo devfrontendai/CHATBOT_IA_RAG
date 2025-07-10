@@ -6,7 +6,6 @@ import requests
 
 router = APIRouter()
 
-# Dummy para fallback
 HISTORIAL_DUMMY = {
     "nombre": "Alfredo Tiprotec",
     "historial_productos": [
@@ -66,8 +65,6 @@ def historial_productos(
                     historial_productos=historial
                 )
             else:
-                raise HTTPException(status_code=404, detail="No se encontró información de póliza")
-        else:
                 raise HTTPException(status_code=404, detail="No se encontró información de póliza")
         else:
             raise HTTPException(status_code=response.status_code, detail=response.text)
