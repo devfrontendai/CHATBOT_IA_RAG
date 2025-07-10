@@ -68,8 +68,7 @@ def historial_productos(
             else:
                 raise HTTPException(status_code=404, detail="No se encontró información de póliza")
         else:
-            raise HTTPException(status_code=response.status_code, detail="Error al consultar pólizas"
-        Fallback dummy (elimina esto cuando uses el endpoint real)
+            raise HTTPException(status_code=response.status_code, detail="Error al consultar pólizas")
         return HistorialProductosResponse(
             nombre=HISTORIAL_DUMMY["nombre"],
             historial_productos=[
@@ -77,7 +76,6 @@ def historial_productos(
             ]
         )
     except Exception as e:
-        # Fallback dummy en caso de error
         return HistorialProductosResponse(
             nombre=HISTORIAL_DUMMY["nombre"],
             historial_productos=[
