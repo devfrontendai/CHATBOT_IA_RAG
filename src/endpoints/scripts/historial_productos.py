@@ -25,13 +25,13 @@ HISTORIAL_DUMMY = {
 }
 
 class ProductoHistorial(BaseModel):
-    producto: str,
-    plan: str,
+    producto: str
+    plan: str
     estatus: str
 
 class HistorialProductosResponse(BaseModel):
     nombre: str
-    historial_productos: List[ProductoHistorial],
+    historial_productos: List[ProductoHistorial]
     script: str
 
 @router.get("/historial_productos/{asegurado_id}", response_model=HistorialProductosResponse)
