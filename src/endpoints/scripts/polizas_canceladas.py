@@ -1,5 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from typing import List
+from utils.auth_utils import get_bearer_token
 
 router = APIRouter()
 
@@ -21,14 +23,29 @@ CANCELADAS_DUMMY = [
     }
 ]
 
-@router.get("/polizas_canceladas")
-def polizas_canceladas(nombre: str = None):
+class PolizaCancelada(BaseModel):
+    numero: str
+    producto: str
+    plan: str
+    motivo_cancelacion: str
+    fecha_cancelacion: str
+
+class CanceladasResponse(BaseModel):
+    nombre: str
+    canceladas: List[PolizaCancelada]
+
+@router.get("/polizas_canceladas/{asegurado_id}", response_model=CanceladasResponse)
+def polizas_canceladas(
+    asegurado_id: str,
+    token: str = Depends(get_bearer_token),
+    nombre: str = None
+):
     """
     Devuelve todas las pólizas canceladas del asegurado (dummy).
     """
     # polizas = requests.get(f"http://tu-back/asegurado/polizas?nombre={nombre}").json()["polizas"]
     # return [p for p in polizas if p["estatus"] == "Cancelada"]
-    return {
-        "nombre": nombre or "Asegurado Dummy",
-        "canceladas": CANCELADAS_DUMMY
-    }
+    return CanceladasResponse(
+        nombre=nombre or "Asegurado Dummy",
+        canceladas=[PolizaCancelada(**p) for p in CANCELADAS_DUMMY]
+    )

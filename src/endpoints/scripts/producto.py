@@ -1,8 +1,8 @@
-# endpoints/productos.py
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import random
+from utils.auth_utils import get_bearer_token
 
 router = APIRouter()
 
@@ -18,13 +18,18 @@ class ProductosResponse(BaseModel):
     nombre: str
     polizas: List[Poliza]
 
-# Endpoint dummy: /productos/{asegurado_id}
+# Endpoint dummy protegido: /productos/{asegurado_id}
 @router.get("/productos/{asegurado_id}", response_model=ProductosResponse)
-def get_productos(asegurado_id: str):
+def get_productos(
+    asegurado_id: str,
+    token: str = Depends(get_bearer_token)  # ← Captura el Bearer token aquí
+):
+    # Consumir el endpoint real:
     # import requests
-    # response = requests.get(f"http://laravel-back/api/polizas/{asegurado_id}")
+    # headers = {"Authorization": f"Bearer {token}"}
+    # response = requests.get(f"http://laravel-back/api/polizas/{asegurado_id}", headers=headers)
     # return response.json()
-    
+
     # Dummy aleatorio para testing frontend:
     nombres = ["Alfredo Tiprotec", "Daniel Camacho", "Juan Pérez", "María García"]
     productos = ["TRAVEL ANNUAL 4.0", "GUARD FAMILY", "AMEX GUARD 3.1", "GNP LIFE"]

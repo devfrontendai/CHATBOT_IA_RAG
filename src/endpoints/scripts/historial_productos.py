@@ -1,49 +1,48 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from typing import List
+from utils.auth_utils import get_bearer_token
 
 router = APIRouter()
 
-# Dummy de historial de productos y sugerencias
-HISTORIAL_DUMMY = {
+# Dummy de próximas vigencias
+VIGENCIAS_DUMMY = {
     "nombre": "Alfredo Tiprotec",
-    "historial": [
-        {
-            "producto": "TRAVEL ANNUAL 4.0",
-            "plan": "FAMILIAR ADVANCED",
-            "estatus": "Cancelada",
-            "motivo_cancelacion": "DUPLICIDAD POLIZA",
-            "fecha_cancelacion": "2025-05-06"
-        },
+    "polizas_proximas_a_vencer": [
         {
             "producto": "GUARD FAMILY",
             "plan": "INDIVIDUAL ELITE",
-            "estatus": "Vigente",
-            "fecha_inicio": "2025-06-01",
-            "fecha_fin": "2026-06-01"
-        }
-    ],
-    "sugerencias": [
-        {
-            "producto": "GUARD FAMILY",
-            "plan": "FAMILIAR PREMIUM",
-            "razon": "Basado en tu historial y vigencias, este producto te ofrece mayor cobertura familiar."
-        },
-        {
-            "producto": "TRAVEL ANNUAL 5.0",
-            "plan": "INDIVIDUAL ELITE",
-            "razon": "Nueva versión disponible, mayor cobertura internacional."
+            "numero": "9044140",
+            "fecha_fin": "2024-07-10",  # Simula que vence pronto
+            "dias_restantes": 5
         }
     ]
 }
 
-@router.get("/historial_productos")
-def historial_productos(nombre: str = None):
+# Modelos de respuesta
+class PolizaVigencia(BaseModel):
+    producto: str
+    plan: str
+    numero: str
+    fecha_fin: str
+    dias_restantes: int
+
+class VigenciasResponse(BaseModel):
+    nombre: str
+    polizas_proximas_a_vencer: List[PolizaVigencia]
+
+@router.get("/vigencias/{asegurado_id}", response_model=VigenciasResponse)
+def proxima_vigencia(
+    asegurado_id: str,
+    token: str = Depends(get_bearer_token)
+):
     """
-    Devuelve historial de productos del asegurado y sugerencias personalizadas (dummy).
+    Devuelve las pólizas vigentes próximas a vencer para el asegurado (dummy).
     """
-    # Aquí consumir el endpoint real (y el rag para agregar sugerencias)
-    return {
-        "nombre": nombre or HISTORIAL_DUMMY["nombre"],
-        "historial": HISTORIAL_DUMMY["historial"],
-        "sugerencias": HISTORIAL_DUMMY["sugerencias"]
-    }
+    # Aquí iría la llamada real al back de Laravel
+    return VigenciasResponse(
+        nombre=VIGENCIAS_DUMMY["nombre"],
+        polizas_proximas_a_vencer=[
+            PolizaVigencia(**p) for p in VIGENCIAS_DUMMY["polizas_proximas_a_vencer"]
+        ]
+    )

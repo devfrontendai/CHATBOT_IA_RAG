@@ -1,5 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from typing import List
+from utils.auth_utils import get_bearer_token
 
 router = APIRouter()
 
@@ -21,13 +23,28 @@ PROXIMAS_VIGENCIAS_DUMMY = [
     }
 ]
 
-@router.get("/proximas_vigencias")
-def proximas_vigencias(nombre: str = None):
+class VigenciaPoliza(BaseModel):
+    numero: str
+    producto: str
+    plan: str
+    inicio_vigencia: str
+    fin_vigencia: str
+
+class ProximasVigenciasResponse(BaseModel):
+    nombre: str
+    proximas_vigencias: List[VigenciaPoliza]
+
+@router.get("/proximas_vigencias/{asegurado_id}", response_model=ProximasVigenciasResponse)
+def proximas_vigencias(
+    asegurado_id: str,
+    token: str = Depends(get_bearer_token),
+    nombre: str = None
+):
     """
     Devuelve pólizas vigentes próximas a vencer (dummy).
     """
-    # Aquí después consumes el endpoint real de Laravel, filtras vigentes y próximas a vencer
-    return {
-        "nombre": nombre or "Asegurado Dummy",
-        "proximas_vigencias": PROXIMAS_VIGENCIAS_DUMMY
-    }
+    # Endpoint
+    return ProximasVigenciasResponse(
+        nombre=nombre or "Asegurado Dummy",
+        proximas_vigencias=[VigenciaPoliza(**v) for v in PROXIMAS_VIGENCIAS_DUMMY]
+    )

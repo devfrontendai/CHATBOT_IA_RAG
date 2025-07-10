@@ -16,7 +16,7 @@ VIGENCIAS_DUMMY = {
     ]
 }
 
-@router.get("/vigencias")
+@router.get("/vigencias/{poliza_id}")
 def proxima_vigencia(nombre: str = None):
     """
     Devuelve las pólizas vigentes próximas a vencer para el asegurado (dummy).
