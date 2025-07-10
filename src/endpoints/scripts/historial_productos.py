@@ -20,21 +20,19 @@ HISTORIAL_DUMMY = {
             "plan": "INDIVIDUAL ELITE",
             "estatus": "Vigente"
         }
-    ]
+    ],
+    "script": "tienes 2 productos, uno con estadus cancelado y otro con estatus vigente"
 }
 
 class ProductoHistorial(BaseModel):
-    producto: str
-    plan: Optional[str] = None
+    producto: str,
+    plan: str,
     estatus: str
-    motivo_cancelacion: Optional[str] = None
-    fecha_cancelacion: Optional[str] = None
-    fecha_inicio: Optional[str] = None
-    fecha_fin: Optional[str] = None
 
 class HistorialProductosResponse(BaseModel):
     nombre: str
-    historial_productos: List[ProductoHistorial]
+    historial_productos: List[ProductoHistorial],
+    script: str
 
 @router.get("/historial_productos/{asegurado_id}", response_model=HistorialProductosResponse)
 def historial_productos(
