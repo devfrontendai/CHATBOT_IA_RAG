@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from utils.auth_utils import get_bearer_token
+from utils.llm_utils import consultar_llm
 import requests
-from state import index
 
 router = APIRouter()
 
@@ -18,24 +18,6 @@ class HistorialProductosResponse(BaseModel):
     nombre: str
     historial_productos: List[ProductoHistorial]
     script: Optional[str] = None
-
-# ----- Dummy para fallback -----
-HISTORIAL_DUMMY = {
-    "nombre": "Alfredo Tiprotec",
-    "historial_productos": [
-        {
-            "producto": "TRAVEL ANNUAL 4.0",
-            "plan": "FAMILIAR ADVANCED",
-            "estatus": "Cancelada"
-        },
-        {
-            "producto": "GUARD FAMILY",
-            "plan": "INDIVIDUAL ELITE",
-            "estatus": "Vigente"
-        }
-    ],
-    "script": "Tienes 2 productos, uno con estatus cancelado y otro con estatus vigente."
-}
 
 def traducir_estatus(estatus):
     if estatus is None:
@@ -54,6 +36,7 @@ def historial_productos(
 ):
     """
     Devuelve historial de productos del asegurado y una sugerencia personalizada.
+    Si falla la consulta, devuelve el error real (NO dummy).
     """
     try:
         headers = {"Authorization": f"Bearer {token}"}
@@ -62,43 +45,45 @@ def historial_productos(
             headers=headers,
             timeout=8
         )
-        if response.status_code == 200:
-            data = response.json()
-            polizas = data.get("policies") or data.get("polices")
-            if polizas and isinstance(polizas, list):
-                historial = []
-                productos_lista = []
-                for p in polizas:
-                    motivo = p.get("motivo_cancelacion")
-                    motivo_str = str(motivo) if motivo not in [None, ""] else None
-                    historial.append(ProductoHistorial(
-                        producto=p.get("nombre_producto"),
-                        plan=p.get("nombre_plan"),
-                        estatus=traducir_estatus(p.get("estatus")),
-                        motivo_cancelacion=motivo_str
-                    ))
-                    productos_lista.append(p.get("nombre_producto"))
-
-                # ---- AQUÍ SE ARMA EL PROMPT PARA EL RAG ----
-                productos_str = ", ".join(set(filter(None, productos_lista)))
-                prompt = f"""
-                El asegurado ya tiene estos productos: {productos_str}.
-                No repitas productos ni planes que ya posee. ¿Qué producto o plan adicional (o upgrade) recomendarías para complementar o mejorar su portafolio?
-                Justifica brevemente tu sugerencia con base en la información interna de productos de seguros.
-                Responde SOLO con la sugerencia y la justificación, en español.
-                """
-                # --- Aquí llamas al RAG/modelo ---
-                contexto = index.as_query_engine(similarity_top_k=6).query(prompt)
-                respuesta = str(contexto) if contexto else "No tengo sugerencias suficientes."
-
-                return HistorialProductosResponse(
-                    nombre=data.get("name"),
-                    historial_productos=historial,
-                    script=respuesta
-                )
-            else:
-                raise HTTPException(status_code=404, detail="No se encontró información de póliza")
-        else:
+        if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
+        
+        data = response.json()
+        polizas = data.get("policies") or data.get("polices")
+        if not polizas or not isinstance(polizas, list) or len(polizas) == 0:
+            raise HTTPException(status_code=404, detail="No se encontró información de póliza")
+
+        historial = []
+        productos_lista = []
+        for p in polizas:
+            motivo = p.get("motivo_cancelacion")
+            motivo_str = str(motivo) if motivo not in [None, ""] else None
+            historial.append(ProductoHistorial(
+                producto=p.get("nombre_producto"),
+                plan=p.get("nombre_plan"),
+                estatus=traducir_estatus(p.get("estatus")),
+                motivo_cancelacion=motivo_str
+            ))
+            productos_lista.append(p.get("nombre_producto"))
+
+        # Prompt para LLM/RAG
+        productos_str = ", ".join(sorted(set(filter(None, productos_lista))))
+        prompt = (
+            f"El asegurado ya tiene estos productos: {productos_str}.\n"
+            "No repitas productos ni planes que ya posee. "
+            "¿Qué producto o plan adicional (o upgrade) recomendarías para complementar o mejorar su portafolio?\n"
+            "Justifica brevemente tu sugerencia con base en la información interna de productos de seguros.\n"
+            "Responde SOLO con la sugerencia y la justificación, en español."
+        )
+
+        respuesta = consultar_llm(prompt)
+        if not respuesta or not isinstance(respuesta, str):
+            respuesta = "No se pudo obtener una sugerencia en este momento."
+
+        return HistorialProductosResponse(
+            nombre=data.get("name", "Asegurado"),
+            historial_productos=historial,
+            script=respuesta
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

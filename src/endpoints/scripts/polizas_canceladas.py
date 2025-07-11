@@ -1,27 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List
 from utils.auth_utils import get_bearer_token
+import requests
 
 router = APIRouter()
-
-# Dummy de ejemplo (después conectas el endpoint real de Laravel)
-CANCELADAS_DUMMY = [
-    {
-        "numero": "9044139",
-        "producto": "TRAVEL ANNUAL 4.0",
-        "plan": "FAMILIAR ADVANCED",
-        "motivo_cancelacion": "DUPLICIDAD POLIZA",
-        "fecha_cancelacion": "2025-05-06"
-    },
-    {
-        "numero": "8765432",
-        "producto": "GUARD FAMILY",
-        "plan": "INDIVIDUAL ELITE",
-        "motivo_cancelacion": "NO PAGO",
-        "fecha_cancelacion": "2024-12-01"
-    }
-]
 
 class PolizaCancelada(BaseModel):
     numero: str
@@ -41,11 +24,36 @@ def polizas_canceladas(
     nombre: str = None
 ):
     """
-    Devuelve todas las pólizas canceladas del asegurado (dummy).
+    Devuelve todas las pólizas canceladas del asegurado.
     """
-    # polizas = requests.get(f"http://tu-back/asegurado/polizas?nombre={nombre}").json()["polizas"]
-    # return [p for p in polizas if p["estatus"] == "Cancelada"]
-    return CanceladasResponse(
-        nombre=nombre or "Asegurado Dummy",
-        canceladas=[PolizaCancelada(**p) for p in CANCELADAS_DUMMY]
-    )
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(
+            f"https://amex-middleware-dev.insuranceservices.mx/api/v1/aramis/ia/cancelled-policies/{asegurado_id}",
+            headers=headers,
+            timeout=8
+        )
+        print(f"Response content: {response.text}")
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+        
+        data = response.json()
+        polizas = data.get("canceladas") or data.get("polizas") or []
+        nombre_resp = data.get("name", nombre or "Asegurado")
+
+        canceladas = []
+        for p in polizas:
+            canceladas.append(PolizaCancelada(
+                numero=str(p.get("numero", "")),
+                producto=p.get("producto", ""),
+                plan=p.get("plan", ""),
+                motivo_cancelacion=str(p.get("motivo_cancelacion", "")),
+                fecha_cancelacion=str(p.get("fecha_cancelacion", ""))
+            ))
+
+        return CanceladasResponse(
+            nombre=nombre_resp,
+            canceladas=canceladas
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
