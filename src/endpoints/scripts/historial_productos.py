@@ -88,6 +88,10 @@ def historial_productos(
                 """
                 # --- Aquí llamas al RAG/modelo ---
                 contexto = index.as_query_engine(similarity_top_k=6).query(prompt)
+                if hasattr(rag_result, "response"):
+                    respuesta = rag_result.response
+                else:
+                    respuesta = str(rag_result)
                 respuesta = contexto if contexto else "No tengo sugerencias suficientes."
 
                 return HistorialProductosResponse(
