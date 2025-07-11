@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from utils.auth_utils import get_bearer_token
 import requests
-from state import index 
+from state import index
 
 router = APIRouter()
 
@@ -86,13 +86,16 @@ def historial_productos(
                 Justifica brevemente tu sugerencia con base en la información interna de productos de seguros.
                 Responde SOLO con la sugerencia y la justificación, en español.
                 """
+
                 # --- Aquí llamas al RAG/modelo ---
                 contexto = index.as_query_engine(similarity_top_k=6).query(prompt)
-                if hasattr(rag_result, "response"):
-                    respuesta = rag_result.response
+                # Forzar siempre string
+                if hasattr(contexto, "response"):
+                    respuesta = contexto.response
                 else:
-                    respuesta = str(rag_result)
-                respuesta = contexto if contexto else "No tengo sugerencias suficientes."
+                    respuesta = str(contexto)
+                if not respuesta or respuesta.strip() == "":
+                    respuesta = "No tengo sugerencias suficientes."
 
                 return HistorialProductosResponse(
                     nombre=data.get("name"),
