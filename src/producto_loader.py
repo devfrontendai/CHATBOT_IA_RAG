@@ -2,7 +2,6 @@ from llama_index.core import Document
 import json
 
 def load_productos(path="info/productos.json"):
-    import json
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     productos = data if isinstance(data, list) else data["productos"]

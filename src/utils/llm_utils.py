@@ -1,74 +1,56 @@
 import os
-import requests
 from state import index
 
 def consultar_llm_ollama(prompt: str) -> str:
-    """
-    Consulta el modelo local Ollama vía llama_index.
-    """
-    try:
-        if index is None:
-            return "El modelo local aún no está listo."
-        contexto = index.as_query_engine(similarity_top_k=6).query(prompt)
-        return str(contexto) if contexto else "No tengo sugerencias suficientes."
-    except Exception as e:
-        return f"[OLLAMA ERROR]: {e}"
+    if index is None:
+        return "El modelo aún no está listo, espera unos segundos y vuelve a intentar."
+    contexto = index.as_query_engine(similarity_top_k=6).query(prompt)
+    return str(contexto) if contexto else "No tengo sugerencias suficientes."
 
 def consultar_llm_openai(prompt: str) -> str:
-    """
-    Consulta el modelo OpenAI vía API.
-    """
+    import requests
     api_key = os.getenv("OPENAI_API_KEY")
+    model = os.getenv("OPENAI_MODEL", "gpt-4o")
     if not api_key:
-        return "[OPENAI ERROR]: No hay API key configurada."
+        return "No hay API key de OpenAI configurada."
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": os.getenv("OPENAI_MODEL", "gpt-4o"),
+        "model": model,
         "messages": [{"role": "system", "content": prompt}],
         "max_tokens": 350
     }
-    try:
-        resp = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=20
-        )
-        data = resp.json()
-        if "choices" in data and len(data["choices"]) > 0:
-            return data["choices"][0]["message"]["content"]
-        return f"[OPENAI ERROR]: {data}"
-    except Exception as e:
-        return f"[OPENAI ERROR]: {e}"
+    resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=20)
+    data = resp.json()
+    if "choices" in data and len(data["choices"]) > 0:
+        return data["choices"][0]["message"]["content"]
+    return "No se pudo obtener sugerencia del modelo OpenAI."
 
 def consultar_llm_gemini(prompt: str) -> str:
-    """
-    Consulta Gemini (Google AI). Implementa aquí si tienes API.
-    """
+    import requests
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return "[GEMINI ERROR]: No hay API key configurada."
-    # Integración real aquí
-    return "[GEMINI]: (integración pendiente)"
+        return "No hay API key de Gemini configurada."
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+    payload = {
+        "contents": [
+            {"parts": [{"text": prompt}]}
+        ]
+    }
+    resp = requests.post(url, json=payload, timeout=20)
+    data = resp.json()
+    try:
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception:
+        return "No se pudo obtener sugerencia del modelo Gemini."
 
 def consultar_llm(prompt: str) -> str:
-    """
-    Decide a qué modelo LLM llamar (Ollama, OpenAI, Gemini), según variable de entorno.
-    Prioridad: OpenAI > Gemini > Ollama (local).
-    """
-    use_openai = os.getenv("USE_OPENAI", "false").lower() == "true"
-    use_gemini = os.getenv("USE_GEMINI", "false").lower() == "true"
-    use_ollama = os.getenv("USE_OLLAMA", "true").lower() == "true"
-
-    if use_openai:
+    backend = os.getenv("LLM_BACKEND", "ollama").lower()
+    if backend == "openai":
         return consultar_llm_openai(prompt)
-    elif use_gemini:
+    if backend == "gemini":
         return consultar_llm_gemini(prompt)
-    elif use_ollama:
-        return consultar_llm_ollama(prompt)
-    else:
-        return "No hay ningún modelo LLM habilitado."
-
+    # Default: Ollama
+    return consultar_llm_ollama(prompt)
