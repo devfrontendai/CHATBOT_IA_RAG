@@ -3,8 +3,11 @@ from pydantic import BaseModel
 from typing import List, Optional
 from utils.auth_utils import get_bearer_token
 import requests
+from state import index
 
 router = APIRouter()
+
+OLLAMA_URL = "http://ollama:11434/api/generate"
 
 # Dummy para fallback
 HISTORIAL_DUMMY = {
@@ -74,12 +77,43 @@ def historial_productos(
                         estatus=traducir_estatus(p.get("estatus")),
                         motivo_cancelacion=motivo_str
                     ))
-                script = f"Tienes {len(historial)} productos: " + \
-                         ", ".join([f"{h.producto} ({h.plan}, {h.estatus})" for h in historial])
+                # Contexto RAG
+                contexto = index.as_query_engine(similarity_top_k=6).query(data.pregunta)
+                if not contexto or str(contexto).strip() == "":
+                    respuesta = "No tengo información suficiente en la base proporcionada."
+                    if data.session_id:
+                        historial.append(Mensaje(content=respuesta, role="bot"))
+                        save_history(data.session_id, historial)
+                    return {"respuesta": respuesta}
+                prompt = f"""
+                Eres un asistente experto en productos de seguros.
+                Debes enviar un script que resuma el historial de productos del asegurado.
+                Debes hacer una sugerencia de algun producto que pueda interesarle al asegurado.
+                Consulta la información del RAG para enriquecer tu respuesta.
+                -----------------
+                INFORMACIÓN DEL RAG:
+                {contexto}
+                -----------------
+                Responde SIEMPRE en ESPAÑOL, en formato markdown (puedes usar listas o tablas).
+                Si la información no está disponible, di: 'No tengo información suficiente en la base proporcionada.'
+                Al FINAL sugiere amablemente una pregunta relevante para continuar la conversación.
+                """
+                payload = {
+                    "model": "llama3:8b-instruct-q2_K",
+                    "prompt": prompt,
+                    "stream": False
+                }
+                response = requests.post(OLLAMA_URL, json=payload)
+                response.raise_for_status()
+                result = response.json()
+                respuesta = result.get("response")
+                if not respuesta:
+                    respuesta = f"Tienes {len(historial)} productos: " + \
+                        ", ".join([f"{h.producto} ({h.plan}, {h.estatus})" for h in historial])
                 return HistorialProductosResponse(
                     nombre=data.get("name"),
                     historial_productos=historial,
-                    script=script
+                    script=respuesta if respuesta else "No se generó un script."
                 )
             else:
                 raise HTTPException(status_code=404, detail="No se encontró información de póliza")
