@@ -7,34 +7,7 @@ from state import index
 
 router = APIRouter()
 
-# Dummy para fallback
-HISTORIAL_DUMMY = {
-    "nombre": "Alfredo Tiprotec",
-    "historial_productos": [
-        {
-            "producto": "TRAVEL ANNUAL 4.0",
-            "plan": "FAMILIAR ADVANCED",
-            "estatus": "Cancelada"
-        },
-        {
-            "producto": "GUARD FAMILY",
-            "plan": "INDIVIDUAL ELITE",
-            "estatus": "Vigente"
-        }
-    ],
-    "script": "Tienes 2 productos, uno con estatus cancelado y otro con estatus vigente."
-}
-
-class ProductoHistorial(BaseModel):
-    producto: str
-    plan: str
-    estatus: str
-    motivo_cancelacion: Optional[str] = None
-
-class HistorialProductosResponse(BaseModel):
-    nombre: str
-    historial_productos: List[ProductoHistorial]
-    script: Optional[str] = None
+# ... (Modelos y dummy igual que antes)
 
 def traducir_estatus(estatus):
     if estatus is None:
@@ -78,24 +51,29 @@ def historial_productos(
                     ))
                     productos_lista.append(p.get("nombre_producto"))
 
-                # ---- AQUÍ SE ARMA EL PROMPT PARA EL RAG ----
+                # ---- Prompt para el RAG ----
                 productos_str = ", ".join(set(filter(None, productos_lista)))
                 prompt = f"""
                 El asegurado ya tiene estos productos: {productos_str}.
-                No repitas productos ni planes que ya posee. ¿Qué producto o plan adicional (o upgrade) recomendarías para complementar o mejorar su portafolio?
-                Justifica brevemente tu sugerencia con base en la información interna de productos de seguros.
-                Responde SOLO con la sugerencia y la justificación, en español.
+                NO RECOMIENDES ningún producto ni plan igual a los que ya tiene. Recomienda solo productos diferentes o upgrades. 
+                Si no hay opciones mejores, responde: 'No hay sugerencias de productos adicionales para el portafolio actual.'
+                Explica brevemente tu sugerencia en español.
                 """
+                # --- Llamada al RAG/modelo ---
+                rag_result = index.as_query_engine(similarity_top_k=6).query(prompt)
+                respuesta = rag_result.response if hasattr(rag_result, "response") else str(rag_result)
+                respuesta_lower = respuesta.lower()
 
-                # --- Aquí llamas al RAG/modelo ---
-                contexto = index.as_query_engine(similarity_top_k=6).query(prompt)
-                # Forzar siempre string
-                if hasattr(contexto, "response"):
-                    respuesta = contexto.response
-                else:
-                    respuesta = str(contexto)
-                if not respuesta or respuesta.strip() == "":
-                    respuesta = "No tengo sugerencias suficientes."
+                # --- Filtro: si sugiere producto ya adquirido, reemplaza ---
+                ya_tiene = set(prod.lower() for prod in productos_lista if prod)
+                sugerido = False
+                for prod in ya_tiene:
+                    if prod and prod in respuesta_lower:
+                        sugerido = True
+                        break
+
+                if sugerido:
+                    respuesta = "No hay sugerencias de productos adicionales para el portafolio actual."
 
                 return HistorialProductosResponse(
                     nombre=data.get("name"),
