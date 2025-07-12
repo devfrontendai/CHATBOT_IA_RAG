@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from endpoints.scripts.polizas_canceladas import router as canceladas_router
 from endpoints.scripts.proximas_vigencias import router as vigencias_router
 from endpoints.scripts.historial_productos import router as historial_router
+import os
 
 SHOW_DOCS = os.getenv("SHOW_DOCS", "true").lower() == "true"
 
