@@ -1,6 +1,8 @@
 services:
   fastapi:
     build: ./src
+    env_file:
+      - .env
     container_name: fastapi-app
     ports:
       - "8000:8000"
