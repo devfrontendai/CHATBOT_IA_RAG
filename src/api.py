@@ -78,6 +78,21 @@ def preguntar(data: Pregunta):
             save_history(data.session_id, historial)
         return {"respuesta": respuesta}
 
+    # --- HISTORIAL REDIS ---
+    if data.session_id:
+        historial = load_history(data.session_id)
+        historial.append(Mensaje(content=data.pregunta, role="user"))
+    else:
+        historial = data.historial[-MAX_HISTORY:]
+
+    # ----------- RECONSTRUYE texto_historial AQUÍ -----------
+    texto_historial = resumen_historial(historial)
+    for m in historial[-MAX_HISTORY:]:
+        rol = "Usuario" if m.role == "user" else "Asistente"
+        texto_historial += f"{rol}: {m.content}\n"
+    # ----------- FIN texto_historial -----------
+
+
     prompt = f"""
     Eres un asistente experto en productos de seguros.
     Toma en cuenta la conversación previa, pero SI el usuario pregunta por un producto o plan diferente, olvida temas previos y responde solo de lo actual.
