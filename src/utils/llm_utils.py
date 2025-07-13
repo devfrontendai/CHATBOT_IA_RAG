@@ -49,9 +49,7 @@ def consultar_llm(prompt: str) -> str:
     backend = os.getenv("LLM_BACKEND", "ollama").lower()
     if backend == "openai":
         return consultar_llm_openai(prompt)
-    elif backend == "gemini":
+    if backend == "gemini":
         return consultar_llm_gemini(prompt)
     # Default: Ollama
     return consultar_llm_ollama(prompt)
-    else:
-        return "Backend de LLM no soportado."
