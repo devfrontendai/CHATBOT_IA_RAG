@@ -5,6 +5,7 @@ import redis
 import json
 from state import index
 from utils.cache_utils import get_cached_response, set_cached_response
+from utils.llm_utils import consultar_llm
 
 router = APIRouter()
 
