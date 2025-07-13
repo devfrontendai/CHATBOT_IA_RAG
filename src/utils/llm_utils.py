@@ -1,4 +1,5 @@
 import os
+import requests
 from state import index
 
 def consultar_llm_ollama(prompt: str) -> str:
@@ -8,7 +9,6 @@ def consultar_llm_ollama(prompt: str) -> str:
     return str(contexto) if contexto else "No tengo sugerencias suficientes."
 
 def consultar_llm_openai(prompt: str) -> str:
-    import requests
     api_key = os.getenv("OPENAI_API_KEY")
     model = os.getenv("OPENAI_MODEL", "gpt-4o")
     if not api_key:
@@ -29,7 +29,6 @@ def consultar_llm_openai(prompt: str) -> str:
     return "No se pudo obtener sugerencia del modelo OpenAI."
 
 def consultar_llm_gemini(prompt: str) -> str:
-    import requests
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return "No hay API key de Gemini configurada."
@@ -50,7 +49,9 @@ def consultar_llm(prompt: str) -> str:
     backend = os.getenv("LLM_BACKEND", "ollama").lower()
     if backend == "openai":
         return consultar_llm_openai(prompt)
-    if backend == "gemini":
+    elif backend == "gemini":
         return consultar_llm_gemini(prompt)
     # Default: Ollama
     return consultar_llm_ollama(prompt)
+    else:
+        return "Backend de LLM no soportado."
