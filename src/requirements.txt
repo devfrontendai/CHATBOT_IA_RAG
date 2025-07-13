@@ -14,4 +14,3 @@ chromadb
 aiohttp
 ollama
 redis
-hashlib
