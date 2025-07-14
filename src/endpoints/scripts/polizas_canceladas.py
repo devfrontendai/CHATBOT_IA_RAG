@@ -58,11 +58,9 @@ def polizas_canceladas(
                 nombre_plan=p.get("nombre_plan", "")
             )
             canceladas.append(poliza)
-            # Solo agrega si tiene datos de cancelación
             if poliza.motivo_cancelacion and poliza.fecha_cancelacion:
                 resumen_items.append(f"- Póliza **{poliza.numero}** cancelada el {poliza.fecha_cancelacion} por motivo: _{poliza.motivo_cancelacion}_")
 
-        # Arma un resumen “humano” para pasarle al LLM
         resumen_str = "\n".join(resumen_items) if resumen_items else "No se encontraron pólizas canceladas con fecha y motivo."
         prompt = (
             f"Lista de pólizas canceladas:\n{resumen_str}\n\n"
@@ -76,7 +74,7 @@ def polizas_canceladas(
         return CanceladasResponse(
             nombre=nombre_resp,
             canceladas=canceladas,
-            resumen_ia=resumen_ia
+            script=resumen_ia
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
