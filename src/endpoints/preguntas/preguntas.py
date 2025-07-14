@@ -1,11 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 import json
 
 from state import index
 from utils.llm_utils import consultar_llm
-
-from utils.cache_utils import rdb  # SOLO importa rdb si usas Redis para historial
+from utils.cache_utils import rdb
 
 router = APIRouter()
 
@@ -118,15 +117,3 @@ def preguntar(data: Pregunta):
             historial.append(Mensaje(content=respuesta, role="bot"))
             save_history(data.session_id, historial)
     return {"respuesta": respuesta}
-
-class FinalizarSesionInput(BaseModel):
-    session_id: str
-    operator_id: str | None = None
-
-@router.post("/finalizar_sesion")
-def finalizar_sesion(data: FinalizarSesionInput):
-    key = f"chat:historial:{data.session_id}"
-    rdb.delete(key)
-    if data.operator_id:
-        clear_active_session(data.operator_id)
-    return {"ok": True, "msg": "Sesión finalizada y memoria eliminada"}
