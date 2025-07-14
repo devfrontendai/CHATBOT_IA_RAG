@@ -22,7 +22,7 @@ def consultar_llm_openai(prompt: str) -> str:
         "messages": [{"role": "system", "content": prompt}],
         "max_tokens": 350
     }
-    resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=20)
+    resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=120)
     data = resp.json()
     if "choices" in data and len(data["choices"]) > 0:
         return data["choices"][0]["message"]["content"]
@@ -38,7 +38,7 @@ def consultar_llm_gemini(prompt: str) -> str:
             {"parts": [{"text": prompt}]}
         ]
     }
-    resp = requests.post(url, json=payload, timeout=20)
+    resp = requests.post(url, json=payload, timeout=120)
     data = resp.json()
     try:
         return data["candidates"][0]["content"]["parts"][0]["text"]

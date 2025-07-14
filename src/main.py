@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import os
 #from api import router
 from fastapi.middleware.cors import CORSMiddleware
 #from endpoints.scripts.producto import router as productos_router
@@ -7,7 +8,7 @@ from endpoints.scripts.proximas_vigencias import router as vigencias_router
 from endpoints.scripts.historial_productos import router as historial_router
 from endpoints.chat.chat import router as chat_router
 from endpoints.finalizar.finalizar import router as finalizar_router
-import os
+from endpoints.logs.logs import router as logs_router
 
 SHOW_DOCS = os.getenv("SHOW_DOCS", "true").lower() == "true"
 
@@ -32,3 +33,4 @@ app.include_router(canceladas_router)
 app.include_router(vigencias_router)
 app.include_router(chat_router)
 app.include_router(finalizar_router)
+app.include_router(logs_router)
