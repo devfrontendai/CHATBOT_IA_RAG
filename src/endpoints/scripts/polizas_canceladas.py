@@ -20,7 +20,7 @@ class PolizaCancelada(BaseModel):
 class CanceladasResponse(BaseModel):
     nombre: str
     canceladas: List[PolizaCancelada]
-    resumen_ia: Optional[str] = None
+    script: Optional[str] = None
 
 @router.get("/polizas_canceladas/{asegurado_id}", response_model=CanceladasResponse)
 def polizas_canceladas(
