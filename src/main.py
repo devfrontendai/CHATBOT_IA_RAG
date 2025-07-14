@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api import router
+#from api import router
 from fastapi.middleware.cors import CORSMiddleware
 #from endpoints.scripts.producto import router as productos_router
 from endpoints.scripts.polizas_canceladas import router as canceladas_router
@@ -25,7 +25,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(router)
+#app.include_router(router)
 #app.include_router(productos_router)
 app.include_router(historial_router)
 app.include_router(canceladas_router)
