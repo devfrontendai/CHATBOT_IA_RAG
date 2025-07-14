@@ -1,9 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import json
 from utils.log_utils import log_rag_interaction
 from state import index
-from utils.llm_utils import consultar_llm
+from utils.llm_utils import consultar_llm, LLMTimeout, LLMServiceError
 from utils.cache_utils import rdb
 
 router = APIRouter()
@@ -57,17 +57,16 @@ def resumen_historial(historial):
 @router.post("/chat")
 def chat(data: Pregunta):
     if index is None:
-        return {"respuesta": "El index aún no está listo, espera unos segundos y vuelve a intentar."}
+        raise HTTPException(status_code=503, detail="El index aún no está listo, espera unos segundos y vuelve a intentar.")
 
     # --- Controla sesiones duplicadas ---
     if data.operator_id and data.session_id:
         current_session = get_active_session(data.operator_id)
         if current_session and current_session != data.session_id:
-            return {
-                "respuesta": (
-                    f"Ya hay un agente con el id {data.operator_id} activo en otra sala de chat, espera a que termine."
-                )
-            }
+            raise HTTPException(
+                status_code=409,
+                detail=f"Ya hay un agente con el id {data.operator_id} activo en otra sala de chat, espera a que termine."
+            )
         set_active_session(data.operator_id, data.session_id)
 
     # --- HISTORIAL REDIS ---
@@ -82,12 +81,18 @@ def chat(data: Pregunta):
         rol = "Usuario" if m.role == "user" else "Asistente"
         texto_historial += f"{rol}: {m.content}\n"
 
-    contexto = index.as_query_engine(similarity_top_k=6).query(data.pregunta)
+    # --- Consulta RAG/contexto
+    try:
+        contexto = index.as_query_engine(similarity_top_k=6).query(data.pregunta)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error consultando RAG: {str(e)}")
+
     if not contexto or str(contexto).strip() == "":
         respuesta = "No tengo información suficiente en la base proporcionada."
         if data.session_id:
             historial.append(Mensaje(content=respuesta, role="bot"))
             save_history(data.session_id, historial)
+        # No es error del servidor, solo no hay información
         return {"respuesta": respuesta}
 
     prompt = f"""
@@ -107,15 +112,21 @@ def chat(data: Pregunta):
     Al FINAL sugiere amablemente una pregunta relevante para continuar la conversación.
     """.strip()
 
+    # --- LLM --- (manejo de errores elegante)
     try:
         respuesta = consultar_llm(prompt)
+    except LLMTimeout as e:
+        raise HTTPException(status_code=408, detail=str(e))
+    except LLMServiceError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail="Error desconocido: " + str(e))
 
-    if data.session_id:
-        if respuesta:
-            historial.append(Mensaje(content=respuesta, role="bot"))
-            save_history(data.session_id, historial)
+    # --- Guarda historial y log ---
+    if data.session_id and respuesta:
+        historial.append(Mensaje(content=respuesta, role="bot"))
+        save_history(data.session_id, historial)
+
     log_rag_interaction(
         session_id=data.session_id,
         pregunta=data.pregunta,
@@ -123,4 +134,5 @@ def chat(data: Pregunta):
         respuesta=respuesta,
         operador=data.operator_id
     )
+
     return {"respuesta": respuesta}
