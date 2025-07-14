@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from utils.auth_utils import get_bearer_token
 import requests
+import json
 
 router = APIRouter()
 
@@ -33,11 +34,19 @@ def polizas_canceladas(
             headers=headers,
             timeout=8
         )
-        print(f"Response content: {response}")
+        print("Response STATUS:", response.status_code)
+        print("Response TEXT:", response.text)
+        try:
+            data = response.json()
+            print("Response JSON:", json.dumps(data, indent=2, ensure_ascii=False))
+        except Exception as e:
+            print("Error parsing JSON:", e)
+            print("Response TEXT (fallback):", response.text)
+            data = {}
+
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
         
-        data = response.json()
         polizas = data.get("canceladas") or data.get("polizas") or []
         nombre_resp = data.get("name", nombre or "Asegurado")
 
