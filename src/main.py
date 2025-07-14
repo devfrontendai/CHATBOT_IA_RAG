@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from endpoints.scripts.polizas_canceladas import router as canceladas_router
 from endpoints.scripts.proximas_vigencias import router as vigencias_router
 from endpoints.scripts.historial_productos import router as historial_router
-from endpoints.preguntas.preguntar import router as preguntar_router
+from endpoints.chat.chat import router as chat_router
 from endpoints.finalizar.finalizar import router as finalizar_router
 import os
 
@@ -30,5 +30,5 @@ app.add_middleware(
 app.include_router(historial_router)
 app.include_router(canceladas_router)
 app.include_router(vigencias_router)
-app.include_router(preguntar_router)
+app.include_router(chat_router)
 app.include_router(finalizar_router)

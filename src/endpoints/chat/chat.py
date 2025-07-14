@@ -54,8 +54,8 @@ def resumen_historial(historial):
         texto += f"{rol}: {m.content}\n"
     return texto
 
-@router.post("/preguntar")
-def preguntar(data: Pregunta):
+@router.post("/chat")
+def chat(data: Pregunta):
     if index is None:
         return {"respuesta": "El index aún no está listo, espera unos segundos y vuelve a intentar."}
 
