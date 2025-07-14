@@ -1,22 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from utils.auth_utils import get_bearer_token
+from utils.llm_utils import consultar_llm
 import requests
-import json
 
 router = APIRouter()
 
+# ----- Modelos -----
 class PolizaCancelada(BaseModel):
     numero: str
     producto: str
     plan: str
     motivo_cancelacion: str
     fecha_cancelacion: str
+    nombre_producto: Optional[str] = None
+    nombre_plan: Optional[str] = None
 
 class CanceladasResponse(BaseModel):
     nombre: str
     canceladas: List[PolizaCancelada]
+    resumen_ia: Optional[str] = None
 
 @router.get("/polizas_canceladas/{asegurado_id}", response_model=CanceladasResponse)
 def polizas_canceladas(
@@ -25,44 +29,54 @@ def polizas_canceladas(
     nombre: str = None
 ):
     """
-    Devuelve todas las pólizas canceladas del asegurado.
+    Devuelve todas las pólizas canceladas del asegurado y un resumen generado por IA.
     """
     try:
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(
             f"https://amex-middleware-dev.insuranceservices.mx/api/v1/aramis/ia/cancelled-policies/{asegurado_id}",
             headers=headers,
-            timeout=8
+            timeout=15
         )
-        print("Response STATUS:", response.status_code)
-        print("Response TEXT:", response.text)
-        try:
-            data = response.json()
-            print("Response JSON:", json.dumps(data, indent=2, ensure_ascii=False))
-        except Exception as e:
-            print("Error parsing JSON:", e)
-            print("Response TEXT (fallback):", response.text)
-            data = {}
-
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
         
-        polizas = data.get("canceladas") or data.get("polizas") or []
+        data = response.json()
+        polizas = data.get("policies") or []
         nombre_resp = data.get("name", nombre or "Asegurado")
 
         canceladas = []
+        resumen_items = []
         for p in polizas:
-            canceladas.append(PolizaCancelada(
+            poliza = PolizaCancelada(
                 numero=str(p.get("numero", "")),
                 producto=p.get("producto", ""),
                 plan=p.get("plan", ""),
-                motivo_cancelacion=str(p.get("motivo_cancelacion", "")),
-                fecha_cancelacion=str(p.get("fecha_cancelacion", ""))
-            ))
+                motivo_cancelacion=p.get("motivo_cancelacion", ""),
+                fecha_cancelacion=p.get("fecha_cancelacion", ""),
+                nombre_producto=p.get("nombre_producto", ""),
+                nombre_plan=p.get("nombre_plan", "")
+            )
+            canceladas.append(poliza)
+            # Solo agrega si tiene datos de cancelación
+            if poliza.motivo_cancelacion and poliza.fecha_cancelacion:
+                resumen_items.append(f"- Póliza **{poliza.numero}** cancelada el {poliza.fecha_cancelacion} por motivo: _{poliza.motivo_cancelacion}_")
+
+        # Arma un resumen “humano” para pasarle al LLM
+        resumen_str = "\n".join(resumen_items) if resumen_items else "No se encontraron pólizas canceladas con fecha y motivo."
+        prompt = (
+            f"Lista de pólizas canceladas:\n{resumen_str}\n\n"
+            "Por favor genera un resumen breve y profesional en español indicando las fechas y motivos principales de cancelación para reportar al usuario. "
+            "Responde solo el resumen, en lenguaje claro."
+        )
+        resumen_ia = consultar_llm(prompt)
+        if not resumen_ia or not isinstance(resumen_ia, str):
+            resumen_ia = "No se pudo generar el resumen en este momento."
 
         return CanceladasResponse(
             nombre=nombre_resp,
-            canceladas=canceladas
+            canceladas=canceladas,
+            resumen_ia=resumen_ia
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
