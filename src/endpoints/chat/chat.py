@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 import json
-
+from utils.log_utils import log_rag_interaction
 from state import index
 from utils.llm_utils import consultar_llm
 from utils.cache_utils import rdb
@@ -116,4 +116,11 @@ def chat(data: Pregunta):
         if respuesta:
             historial.append(Mensaje(content=respuesta, role="bot"))
             save_history(data.session_id, historial)
+    log_rag_interaction(
+        session_id=data.session_id,
+        pregunta=data.pregunta,
+        contexto=contexto,
+        respuesta=respuesta,
+        operador=data.operator_id
+    )
     return {"respuesta": respuesta}
