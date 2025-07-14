@@ -33,7 +33,7 @@ def polizas_canceladas(
             headers=headers,
             timeout=8
         )
-        print(f"Response content: {response.text}")
+        print(f"Response content: {response}")
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
         
