@@ -43,7 +43,7 @@ def historial_productos(
         response = requests.get(
             f"https://amex-middleware-dev.insuranceservices.mx/api/v1/aramis/ia/policies/{asegurado_id}",
             headers=headers,
-            timeout=8
+            timeout=15
         )
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
