@@ -14,3 +14,4 @@ chromadb
 aiohttp
 ollama
 redis
+tiktoken

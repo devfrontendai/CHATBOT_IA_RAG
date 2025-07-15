@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from utils.auth_utils import get_bearer_token
 from utils.llm_utils import consultar_llm
+from utils.token_utils import calcular_tokens_y_costo  # <---
 import requests
 
 router = APIRouter()
@@ -18,6 +19,7 @@ class HistorialProductosResponse(BaseModel):
     nombre: str
     historial_productos: List[ProductoHistorial]
     script: Optional[str] = None
+    tokens_usados: Optional[dict] = None  # <---
 
 def traducir_estatus(estatus):
     if estatus is None:
@@ -79,11 +81,14 @@ def historial_productos(
         respuesta = consultar_llm(prompt)
         if not respuesta or not isinstance(respuesta, str):
             respuesta = "No se pudo obtener una sugerencia en este momento."
+        
+        tokens_info = calcular_tokens_y_costo(prompt, respuesta)
 
         return HistorialProductosResponse(
             nombre=data.get("name", "Asegurado"),
             historial_productos=historial,
-            script=respuesta
+            script=respuesta,
+            tokens_usados=tokens_info
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -3,11 +3,11 @@ from pydantic import BaseModel
 from typing import List, Optional
 from utils.auth_utils import get_bearer_token
 from utils.llm_utils import consultar_llm
+from utils.token_utils import calcular_tokens_y_costo  # <---
 import requests
 
 router = APIRouter()
 
-# ----- Modelos -----
 class PolizaCancelada(BaseModel):
     numero: str
     producto: str
@@ -21,6 +21,7 @@ class CanceladasResponse(BaseModel):
     nombre: str
     canceladas: List[PolizaCancelada]
     script: Optional[str] = None
+    tokens_usados: Optional[dict] = None  # <---
 
 @router.get("/polizas_canceladas/{asegurado_id}", response_model=CanceladasResponse)
 def polizas_canceladas(
@@ -70,11 +71,14 @@ def polizas_canceladas(
         resumen_ia = consultar_llm(prompt)
         if not resumen_ia or not isinstance(resumen_ia, str):
             resumen_ia = "No se pudo generar el resumen en este momento."
+        
+        tokens_info = calcular_tokens_y_costo(prompt, resumen_ia)
 
         return CanceladasResponse(
             nombre=nombre_resp,
             canceladas=canceladas,
-            script=resumen_ia
+            script=resumen_ia,
+            tokens_usados=tokens_info
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

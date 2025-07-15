@@ -5,6 +5,7 @@ from utils.log_utils import log_rag_interaction
 from state import index
 from utils.llm_utils import consultar_llm, LLMTimeout, LLMServiceError
 from utils.cache_utils import rdb
+from utils.token_utils import calcular_tokens_y_costo  # <--- NUEVO
 
 router = APIRouter()
 
@@ -122,6 +123,9 @@ def chat(data: Pregunta):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error desconocido: " + str(e))
 
+    # --- TOKENS ---
+    tokens_info = calcular_tokens_y_costo(prompt, respuesta)
+
     # --- Guarda historial y log ---
     if data.session_id and respuesta:
         historial.append(Mensaje(content=respuesta, role="bot"))
@@ -135,4 +139,7 @@ def chat(data: Pregunta):
         operador=data.operator_id
     )
 
-    return {"respuesta": respuesta}
+    return {
+        "respuesta": respuesta,
+        "tokens_usados": tokens_info
+    }
