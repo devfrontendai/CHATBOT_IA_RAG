@@ -66,6 +66,7 @@ def polizas_canceladas(
         prompt = (
             f"Lista de pólizas canceladas:\n{resumen_str}\n\n"
             "Por favor genera un resumen breve y profesional en español indicando las fechas y motivos principales de cancelación para reportar al usuario. "
+            "Si no hay fechas, solo menciona los motivos. "
             "Responde solo el resumen, en lenguaje claro."
         )
         resumen_ia = consultar_llm(prompt)
